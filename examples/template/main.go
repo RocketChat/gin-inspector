@@ -1,35 +1,26 @@
 package main
 
 import (
-	"html/template"
 	"io"
 	"net/http"
-	"time"
 
-	"github.com/RocketChat/gin-inspector"
+	inspector "github.com/RocketChat/gin-inspector"
 	"github.com/gin-gonic/gin"
 )
 
-func formatDate(t time.Time) string {
-	return t.Format(time.RFC822)
-}
-
 func main() {
 	r := gin.Default()
-	r.Delims("{{", "}}")
-
-	r.SetFuncMap(template.FuncMap{
-		"formatDate": formatDate,
-	})
-
-	r.LoadHTMLFiles("inspector.html")
+	err := inspector.LoadHtml(r)
+	if err != nil {
+		panic(err)
+	}
 	debug := true
 
 	if debug {
 		r.Use(inspector.InspectorStats())
 
 		r.GET("/_inspector", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "inspector.html", map[string]interface{}{
+			c.HTML(http.StatusOK, inspector.HtmlName, map[string]interface{}{
 				"title":      "Gin Inspector",
 				"pagination": inspector.GetPaginator(),
 			})

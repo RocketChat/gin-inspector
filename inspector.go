@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -68,13 +69,99 @@ func formatDate(t time.Time) string {
 
 func Frontend(c *gin.Context) {
 	// c.JSON(200, inspector.GetPaginator())
-	c.HTML(http.StatusOK, "index.html", map[string]interface{}{
+	c.HTML(http.StatusOK, HtmlName, map[string]interface{}{
 		"title":      "Gin Inspector",
 		"pagination": GetPaginator(),
 	})
 }
 
+func JsonFrontend(c *gin.Context) {
+	c.JSON(200, GetPaginator())
+}
+
 const HtmlName = "inspector.html"
+
+func InspectorStats() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		urlPath := c.Request.URL.Path
+
+		if strings.Contains(urlPath, "/_inspector") {
+
+			page, _ := strconv.ParseFloat(c.DefaultQuery("page", "1"), 64)
+			perPage, _ := strconv.ParseFloat(c.DefaultQuery("per_page", "20"), 64)
+			total := float64(len(allRequests.Requets))
+			totalPage := math.Ceil(total / perPage)
+			offset := (page - 1) * perPage
+
+			if offset < 0 {
+				offset = 0
+			}
+
+			pagination.HasPrev = false
+			pagination.HasNext = false
+			pagination.CurrentPage = int(page)
+			pagination.PerPage = int(perPage)
+			pagination.TotalPage = int(totalPage)
+			pagination.Total = int(total)
+			pagination.Data = paginate(allRequests.Requets, int(offset), int(perPage))
+
+			if pagination.CurrentPage > 1 {
+				pagination.HasPrev = true
+				pagination.PrevPageUrl = urlPath + "?page=" + strconv.Itoa(pagination.CurrentPage-1) + "&per_page=" + strconv.Itoa(pagination.PerPage)
+			}
+
+			if pagination.CurrentPage < pagination.TotalPage {
+				pagination.HasNext = true
+				pagination.NextPageUrl = urlPath + "?page=" + strconv.Itoa(pagination.CurrentPage+1) + "&per_page=" + strconv.Itoa(pagination.PerPage)
+			}
+
+		} else {
+
+			start := time.Now()
+
+			c.Request.ParseForm()
+			c.Request.ParseMultipartForm(10000)
+
+			body, err := io.ReadAll(c.Request.Body)
+			if err != nil {
+				log.Println(err)
+			}
+			c.Request.Body.Close()
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
+			request := RequestStat{
+				RequestedAt:   start,
+				RequestUrl:    urlPath,
+				HttpMethod:    c.Request.Method,
+				HttpStatus:    c.Writer.Status(),
+				ContentType:   c.ContentType(),
+				Headers:       c.Request.Header,
+				Cookies:       c.Request.Cookies(),
+				GetParams:     c.Request.URL.Query(),
+				PostParams:    c.Request.PostForm,
+				PostMultipart: c.Request.MultipartForm,
+				ClientIP:      c.ClientIP(),
+				Body:          string(body),
+			}
+
+			allRequests.Requets = append([]RequestStat{request}, allRequests.Requets...)
+
+		}
+
+		c.Next()
+
+	}
+}
+
+func paginate(s []RequestStat, offset, length int) []RequestStat {
+	end := offset + length
+	if end < len(s) {
+		return s[offset:end]
+	}
+
+	return s[offset:]
+}
 
 const Html = `
 <!doctype html>
@@ -440,85 +527,3 @@ const Html = `
 </script>
 </html>
 `
-
-func InspectorStats() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		urlPath := c.Request.URL.Path
-
-		if urlPath == "/_inspector" {
-
-			page, _ := strconv.ParseFloat(c.DefaultQuery("page", "1"), 64)
-			perPage, _ := strconv.ParseFloat(c.DefaultQuery("per_page", "20"), 64)
-			total := float64(len(allRequests.Requets))
-			totalPage := math.Ceil(total / perPage)
-			offset := (page - 1) * perPage
-
-			if offset < 0 {
-				offset = 0
-			}
-
-			pagination.HasPrev = false
-			pagination.HasNext = false
-			pagination.CurrentPage = int(page)
-			pagination.PerPage = int(perPage)
-			pagination.TotalPage = int(totalPage)
-			pagination.Total = int(total)
-			pagination.Data = paginate(allRequests.Requets, int(offset), int(perPage))
-
-			if pagination.CurrentPage > 1 {
-				pagination.HasPrev = true
-				pagination.PrevPageUrl = urlPath + "?page=" + strconv.Itoa(pagination.CurrentPage-1) + "&per_page=" + strconv.Itoa(pagination.PerPage)
-			}
-
-			if pagination.CurrentPage < pagination.TotalPage {
-				pagination.HasNext = true
-				pagination.NextPageUrl = urlPath + "?page=" + strconv.Itoa(pagination.CurrentPage+1) + "&per_page=" + strconv.Itoa(pagination.PerPage)
-			}
-
-		} else {
-
-			start := time.Now()
-
-			c.Request.ParseForm()
-			c.Request.ParseMultipartForm(10000)
-
-			body, err := io.ReadAll(c.Request.Body)
-			if err != nil {
-				log.Println(err)
-			}
-			c.Request.Body.Close()
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-
-			request := RequestStat{
-				RequestedAt:   start,
-				RequestUrl:    urlPath,
-				HttpMethod:    c.Request.Method,
-				HttpStatus:    c.Writer.Status(),
-				ContentType:   c.ContentType(),
-				Headers:       c.Request.Header,
-				Cookies:       c.Request.Cookies(),
-				GetParams:     c.Request.URL.Query(),
-				PostParams:    c.Request.PostForm,
-				PostMultipart: c.Request.MultipartForm,
-				ClientIP:      c.ClientIP(),
-				Body:          string(body),
-			}
-
-			allRequests.Requets = append([]RequestStat{request}, allRequests.Requets...)
-
-		}
-
-		c.Next()
-
-	}
-}
-
-func paginate(s []RequestStat, offset, length int) []RequestStat {
-	end := offset + length
-	if end < len(s) {
-		return s[offset:end]
-	}
-
-	return s[offset:]
-}

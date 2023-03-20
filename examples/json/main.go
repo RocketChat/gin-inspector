@@ -11,9 +11,7 @@ func main() {
 
 	if debug {
 		r.Use(inspector.InspectorStats())
-		r.GET("/_inspector", func(c *gin.Context) {
-			c.JSON(200, inspector.GetPaginator())
-		})
+		r.GET("/_inspector", inspector.JsonFrontend)
 	}
 
 	r.Run()

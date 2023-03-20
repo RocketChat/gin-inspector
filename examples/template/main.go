@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"net/http"
 
 	inspector "github.com/RocketChat/gin-inspector"
 	"github.com/gin-gonic/gin"
@@ -19,13 +18,7 @@ func main() {
 	if debug {
 		r.Use(inspector.InspectorStats())
 
-		r.GET("/_inspector", func(c *gin.Context) {
-			c.HTML(http.StatusOK, inspector.HtmlName, map[string]interface{}{
-				"title":      "Gin Inspector",
-				"pagination": inspector.GetPaginator(),
-			})
-
-		})
+		r.GET("/_inspector", inspector.Frontend)
 		r.POST("/test", func(c *gin.Context) {
 			body, err := io.ReadAll(c.Request.Body)
 			if err != nil {

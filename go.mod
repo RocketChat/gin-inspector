@@ -4,9 +4,7 @@ go 1.18
 
 replace github.com/RocketChat/gin-inspector => ./
 
-require (
-	github.com/gin-gonic/gin v1.9.0
-)
+require github.com/gin-gonic/gin v1.9.0
 
 require (
 	github.com/bytedance/sonic v1.8.5 // indirect

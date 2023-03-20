@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -63,6 +64,14 @@ func LoadHtml(router *gin.Engine) (err error) {
 
 func formatDate(t time.Time) string {
 	return t.Format(time.RFC822)
+}
+
+func Frontend(c *gin.Context) {
+	// c.JSON(200, inspector.GetPaginator())
+	c.HTML(http.StatusOK, "index.html", map[string]interface{}{
+		"title":      "Gin Inspector",
+		"pagination": GetPaginator(),
+	})
 }
 
 const HtmlName = "inspector.html"

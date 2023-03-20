@@ -1,6 +1,9 @@
 package inspector
 
 import (
+	"bytes"
+	"io"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -32,6 +35,7 @@ type RequestStat struct {
 	ClientIP      string      `json:"client_ip"`
 	Cookies       interface{} `json:"cookies"`
 	Headers       interface{} `json:"headers"`
+	Body          string      `json:"body"`
 }
 
 type AllRequests struct {
@@ -87,6 +91,13 @@ func InspectorStats() gin.HandlerFunc {
 			c.Request.ParseForm()
 			c.Request.ParseMultipartForm(10000)
 
+			body, err := io.ReadAll(c.Request.Body)
+			if err != nil {
+				log.Println(err)
+			}
+			c.Request.Body.Close()
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
 			request := RequestStat{
 				RequestedAt:   start,
 				RequestUrl:    urlPath,
@@ -99,6 +110,7 @@ func InspectorStats() gin.HandlerFunc {
 				PostParams:    c.Request.PostForm,
 				PostMultipart: c.Request.MultipartForm,
 				ClientIP:      c.ClientIP(),
+				Body:          string(body),
 			}
 
 			allRequests.Requets = append([]RequestStat{request}, allRequests.Requets...)

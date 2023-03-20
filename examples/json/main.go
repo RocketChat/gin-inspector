@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fatihkahveci/gin-inspector"
+	"github.com/RocketChat/gin-inspector"
 	"github.com/gin-gonic/gin"
 )
 

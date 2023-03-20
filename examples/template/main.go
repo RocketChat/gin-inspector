@@ -2,10 +2,11 @@ package main
 
 import (
 	"html/template"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/fatihkahveci/gin-inspector"
+	"github.com/RocketChat/gin-inspector"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,6 +34,14 @@ func main() {
 				"pagination": inspector.GetPaginator(),
 			})
 
+		})
+		r.POST("/test", func(c *gin.Context) {
+			body, err := io.ReadAll(c.Request.Body)
+			if err != nil {
+				c.String(500, err.Error())
+				return
+			}
+			c.String(200, string(body))
 		})
 	}
 

@@ -1,11 +1,10 @@
-module gin-inspector
+module github.com/RocketChat/gin-inspector
 
 go 1.18
 
 replace github.com/RocketChat/gin-inspector => ./
 
 require (
-	github.com/RocketChat/gin-inspector v0.0.0-20190208215146-ffbe3a21bb6b
 	github.com/gin-gonic/gin v1.9.0
 )
 
